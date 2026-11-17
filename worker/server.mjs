@@ -13,12 +13,12 @@ export default {async fetch(request,env){
   const raw=await request.text();if(raw.length>2048)return json({error:'Too large'},413);
   let d;try{d=JSON.parse(raw)}catch{return json({error:'Invalid JSON'},400)}
   if(!d||typeof d.token!=='string'||! /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(d.token)||typeof d.name!=='string'||!d.name.trim()||d.name.trim().length>80||!['yes','maybe','no'].includes(d.answer))return json({error:'Invalid response'},400);
-  await env.BUCKET.put('farewell/'+d.token,JSON.stringify({name:d.name.trim(),answer:d.answer}),{customMetadata:{answer:d.answer}});
+  await env.BUCKET.put('farewell/'+d.token,JSON.stringify({name:d.name.trim(),answer:d.answer}),{customMetadata:{answer:d.answer,...(d.publicName===true?{name:d.name.trim()}: {})}});
   return json({saved:true});
  }
  if(url.pathname==='/api/results'&&request.method==='GET'){
-  const totals={yes:0,maybe:0,no:0};let cursor;
-  do{const page=await env.BUCKET.list({prefix:'farewell/',include:['customMetadata'],limit:1000,...(cursor?{cursor}:{})});for(const o of page.objects){const a=o.customMetadata?.answer;if(Object.hasOwn(totals,a))totals[a]++}cursor=page.truncated?page.cursor:undefined}while(cursor);
+  const totals={yes:0,maybe:0,no:0,participants:[]};let cursor;
+  do{const page=await env.BUCKET.list({prefix:'farewell/',include:['customMetadata'],limit:1000,...(cursor?{cursor}:{})});for(const o of page.objects){const a=o.customMetadata?.answer;if(['yes','maybe','no'].includes(a)){totals[a]++;if(o.customMetadata?.name)totals.participants.push({name:o.customMetadata.name,answer:a})}}cursor=page.truncated?page.cursor:undefined}while(cursor);
   return json(totals);
  }
  return json({error:'Not found'},404);
