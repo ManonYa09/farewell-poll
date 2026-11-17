@@ -1,0 +1,11 @@
+name = "farewell-poll"
+main = "dist/server/index.js"
+compatibility_date = "2026-11-17"
+workers_dev = true
+
+[build]
+command = "npm run build"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "farewell-poll-responses"
